@@ -20,6 +20,6 @@ export async function fetchStockSearch(ticker: string, newsCount: number = 5) {
     return response
   } catch (error) {
     console.log("Failed to fetch stock search", error)
-    throw new Error("Failed to fetch stock search.")
+    return { news: [] }
   }
 }

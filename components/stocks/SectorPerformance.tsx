@@ -1,24 +1,51 @@
 import { cn } from "@/lib/utils"
-
-async function fetchSectorPerformance() {
-  const url = `https://financialmodelingprep.com/api/v3/sector-performance?apikey=${process.env.FMP_API_KEY}`
-  const options = {
-    method: "GET",
-    next: {
-      revalidate: 3600,
-    },
-  }
-  const res = await fetch(url, options)
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch sector performance")
-  }
-  return res.json()
-}
+import { Badge } from "../ui/badge"
+import { fetchSectorPerformance } from "@/lib/fmp"
 
 interface Sector {
   sector: string
   changesPercentage: string
+}
+
+export async function SectorBadges() {
+  const data = (await fetchSectorPerformance()) as Sector[]
+
+  if (!data) {
+    return null
+  }
+
+  const totalChangePercentage = data.reduce((total, sector) => {
+    return total + parseFloat(sector.changesPercentage)
+  }, 0)
+
+  const averageChangePercentage =
+    (totalChangePercentage / data.length).toFixed(2) + "%"
+
+  const allSectors = {
+    sector: "All sectors",
+    changesPercentage: averageChangePercentage,
+  }
+  data.unshift(allSectors)
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {data.map((sector: Sector) => (
+        <Badge key={sector.sector} variant="outline" className="py-2">
+          {sector.sector}
+          <span
+            className={cn(
+              "w-[4rem] text-right transition-colors",
+              parseFloat(sector.changesPercentage) > 0
+                ? " text-green-800 dark:text-green-400"
+                : " text-red-800 dark:text-red-500"
+            )}
+          >
+            {parseFloat(sector.changesPercentage).toFixed(2) + "%"}
+          </span>
+        </Badge>
+      ))}
+    </div>
+  )
 }
 
 export default async function SectorPerformance() {

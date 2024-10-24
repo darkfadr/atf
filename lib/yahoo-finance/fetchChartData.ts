@@ -37,6 +37,7 @@ export async function fetchChartData(
     return chartData
   } catch (error) {
     console.log("Failed to fetch chart data", error)
-    throw new Error("Failed to fetch chart data.")
+    // throw new Error("Failed to fetch chart data.")
+    return []
   }
 }

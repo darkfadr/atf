@@ -15,14 +15,42 @@ import {
 import { Button } from "./button"
 import tickers from "@/data/tickers.json"
 import { useRouter } from "next/navigation"
+import {
+  EnvelopeClosedIcon,
+  GearIcon,
+  HomeIcon,
+  PersonIcon,
+} from "@radix-ui/react-icons"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@radix-ui/react-popover"
+import {
+  BarChart,
+  BitcoinIcon,
+  ChartBarIcon,
+  HelpCircleIcon,
+} from "lucide-react"
 
 const SUGGESTIONS = [
+  { ticker: "AAPL", title: "Apple Inc." },
+  { ticker: "NFLX", title: "Netflix, Inc." },
   { ticker: "TSLA", title: "Tesla Inc." },
   { ticker: "NVDA", title: "NVIDIA Corporation" },
-  { ticker: "AAPL", title: "Apple Inc." },
-  { ticker: "MSFT", title: "Microsoft Corporation" },
-  { ticker: "GOOGL", title: "Alphabet Inc." },
-  { ticker: "AMZN", title: "Amazon.com Inc." },
+]
+
+const CRYPTO_SUGGESTIONS = [
+  { ticker: "X:BTCUSD", title: "Bitcoin" },
+  { ticker: "X:ETHUSD", title: "Ethereum" },
+  { ticker: "X:SOLUSD", title: "Solana" },
+  { ticker: "X:DOGEUSD", title: "Dogecoin" },
+]
+
+const NAVIGATION = [
+  { path: "/", title: "Home", icon: HomeIcon },
+  { path: "/screener", title: "Stocks", icon: BarChart },
+  { path: "/guide", title: "Guide", icon: HelpCircleIcon },
 ]
 
 export default function CommandMenu() {
@@ -42,16 +70,11 @@ export default function CommandMenu() {
   }, [])
 
   return (
-    <div>
-      <Button
-        onClick={() => setOpen(true)}
-        variant="outline"
-        size={"sm"}
-        className="group"
-      >
+    <div className="w-2/3">
+      <Button onClick={() => setOpen(true)} variant="outline" className="group">
         <p className="flex gap-10 text-sm text-muted-foreground group-hover:text-foreground">
           Search...
-          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 group-hover:text-foreground sm:inline-flex">
+          <kbd className="pointer-events-none ml-12 hidden h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 group-hover:text-foreground sm:inline-flex">
             <span className="text-xs">⌘</span>K
           </kbd>
         </p>
@@ -65,7 +88,34 @@ export default function CommandMenu() {
           />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup heading="Suggestions">
+
+            <CommandGroup heading="Menu">
+              {search.length === 0 &&
+                NAVIGATION.map((item) => (
+                  <CommandItem
+                    key={item.path}
+                    value={item.path}
+                    className="gap-2"
+                    onSelect={() => {
+                      setOpen(false)
+                      router.push(item.path)
+                    }}
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
+                    {/* <CommandShortcut>⌘k</CommandShortcut> */}
+                  </CommandItem>
+                ))}
+
+              {search.length > 0 &&
+                NAVIGATION.filter((item) =>
+                  item.title.toLowerCase().includes(search.toLowerCase())
+                ).map((item) => (
+                  <CommandItem key={item.path} value={item.path} />
+                ))}
+            </CommandGroup>
+
+            <CommandGroup heading="Stocks">
               {search.length === 0 &&
                 SUGGESTIONS.map((suggestion) => (
                   <CommandItem
@@ -102,6 +152,53 @@ export default function CommandMenu() {
                         setOpen(false)
                         setSearch("")
                         router.push(`/stocks/${ticker.ticker}`)
+                      }}
+                    >
+                      <p className="mr-2 font-semibold">{ticker.ticker}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {ticker.title}
+                      </p>
+                    </CommandItem>
+                  ))}
+            </CommandGroup>
+
+            <CommandGroup heading="Crypto">
+              {search.length === 0 &&
+                CRYPTO_SUGGESTIONS.map((suggestion) => (
+                  <CommandItem
+                    key={suggestion.ticker}
+                    value={suggestion.ticker + "\n \n" + suggestion.title}
+                    onSelect={() => {
+                      setOpen(false)
+                      setSearch("")
+                      router.push(`/crypto/${suggestion.ticker}`)
+                    }}
+                  >
+                    <p className="mr-2 font-semibold">{suggestion.ticker}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {suggestion.title}
+                    </p>
+                  </CommandItem>
+                ))}
+
+              {search.length > 0 &&
+                tickers
+                  .filter(
+                    (ticker) =>
+                      ticker.ticker
+                        .toLowerCase()
+                        .includes(search.toLowerCase()) ||
+                      ticker.title.toLowerCase().includes(search.toLowerCase())
+                  )
+                  .slice(0, 10)
+                  .map((ticker) => (
+                    <CommandItem
+                      key={ticker.id}
+                      value={ticker.ticker + "\n \n" + ticker.title}
+                      onSelect={() => {
+                        setOpen(false)
+                        setSearch("")
+                        router.push(`/crypto/${ticker.ticker}`)
                       }}
                     >
                       <p className="mr-2 font-semibold">{ticker.ticker}</p>

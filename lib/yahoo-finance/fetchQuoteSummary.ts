@@ -12,6 +12,7 @@ export async function fetchQuoteSummary(ticker: string) {
     return response
   } catch (error) {
     console.log("Failed to fetch quote summary", error)
-    throw new Error("Failed to fetch quote summary.")
+    //throw new Error("Failed to fetch quote summary.")
+    return null
   }
 }

@@ -2,6 +2,9 @@ import { fetchChartData } from "@/lib/yahoo-finance/fetchChartData"
 import { Interval, Range } from "@/types/yahoo-finance"
 import AreaClosedChart from "./AreaClosedChart"
 import { fetchQuote } from "@/lib/yahoo-finance/fetchQuote"
+import tickers from "@/data/tickers.json"
+import { query } from "@/lib/graphql"
+import { GET_TICKER_DATA } from "@/lib/graphql/queries"
 
 export default async function MarketsChart({
   ticker,

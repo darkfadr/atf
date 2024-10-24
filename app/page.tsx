@@ -3,6 +3,7 @@ import yahooFinance from "yahoo-finance2"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -13,41 +14,28 @@ import { Suspense } from "react"
 import MarketsChart from "@/components/chart/MarketsChart"
 import Link from "next/link"
 import { columns } from "@/components/stocks/markets/columns"
-import SectorPerformance from "@/components/stocks/SectorPerformance"
+import SectorPerformance, {
+  SectorBadges,
+} from "@/components/stocks/SectorPerformance"
 import {
   validateInterval,
   validateRange,
 } from "@/lib/yahoo-finance/fetchChartData"
 import { fetchStockSearch } from "@/lib/yahoo-finance/fetchStockSearch"
+import { Separator } from "@radix-ui/react-separator"
+import { ChartLineInteractiveWatchlist } from "@/components/components-chart-line-interactive-watchlist"
+import {
+  getMarketSentiment,
+  getSentimentBackground,
+  getSentimentColor,
+  isMarketOpen,
+} from "@/lib/utils"
+import { StockPerformanceChart } from "@/components/components-stock-performance-chart"
+import { BitcoinTicker } from "@/components/btc-ticker"
+import { Watchlist } from "@/components/watchlist"
+import tickers from "@/data/tickers.json"
 
-function isMarketOpen() {
-  const now = new Date()
-
-  // Convert to New York time
-  const options: Intl.DateTimeFormatOptions = {
-    timeZone: "America/New_York",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: false,
-  }
-  const formatter = new Intl.DateTimeFormat([], options)
-
-  const timeString = formatter.format(now)
-  const [hour, minute] = timeString.split(":").map(Number)
-  const timeInET = hour + minute / 60
-
-  // Get the day of the week in New York time
-  const dayInET = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/New_York" })
-  ).getDay()
-
-  // Check if the current time is between 9:30 AM and 4:00 PM ET on a weekday
-  if (dayInET >= 1 && dayInET <= 5 && timeInET >= 9.5 && timeInET < 16) {
-    return true
-  } else {
-    return false
-  }
-}
+const watchlist = tickers.slice(0, 10)
 
 const tickersFutures = [
   { symbol: "ES=F", shortName: "S&P 500 Futures" },
@@ -75,88 +63,71 @@ const tickerAfterOpen = [
   { symbol: "BTC-USD", shortName: "Bitcoin" },
 ]
 
-function getMarketSentiment(changePercentage: number | undefined) {
-  if (!changePercentage) {
-    return "neutral"
-  }
-  if (changePercentage > 0.1) {
-    return "bullish"
-  } else if (changePercentage < -0.1) {
-    return "bearish"
-  } else {
-    return "neutral"
-  }
+type HomeSearchParams = {
+  ticker?: string
+  range?: string
+  interval?: string
 }
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: {
-    ticker?: string
-    range?: string
-    interval?: string
-  }
-}) {
-  const tickers = isMarketOpen() ? tickerAfterOpen : tickersFutures
+type Props = { searchParams: HomeSearchParams }
 
-  const ticker = searchParams?.ticker || tickers[0].symbol
-  const range = validateRange(searchParams?.range || DEFAULT_RANGE)
+export default async function Home({ searchParams }: Props) {
+  const tickers = isMarketOpen() ? tickerAfterOpen : tickersFutures
+  const params = await searchParams
+
+  const ticker = params?.ticker || tickers[0].symbol
+  const range = validateRange(params?.range || DEFAULT_RANGE)
   const interval = validateInterval(
     range,
-    (searchParams?.interval as Interval) || DEFAULT_INTERVAL
+    (params?.interval as Interval) || DEFAULT_INTERVAL
   )
-  const news = await fetchStockSearch("^DJI", 1)
+  const news = await fetchStockSearch(ticker, 1)
+  const headline = news.news[0]
 
-  const promises = tickers.map(({ symbol }) =>
-    yahooFinance.quoteCombine(symbol)
-  )
-  const results = await Promise.all(promises)
-
+  // const promises = tickers.map(({ symbol }) => yahooFinance.quoteCombine(symbol))
+  const results: any[] = [] //await Promise.all(promises)q
   const resultsWithTitles = results.map((result, index) => ({
     ...result,
     shortName: tickers[index].shortName,
   }))
 
   const marketSentiment = getMarketSentiment(
-    resultsWithTitles[0].regularMarketChangePercent
+    resultsWithTitles[0]?.regularMarketChangePercent || null
   )
 
-  const sentimentColor =
-    marketSentiment === "bullish"
-      ? "text-green-500"
-      : marketSentiment === "bearish"
-        ? "text-red-500"
-        : "text-neutral-500"
-
-  const sentimentBackground =
-    marketSentiment === "bullish"
-      ? "bg-green-500/10"
-      : marketSentiment === "bearish"
-        ? "bg-red-300/50 dark:bg-red-950/50"
-        : "bg-neutral-500/10"
+  const sentimentColor = getSentimentColor(marketSentiment)
+  const sentimentBackground = getSentimentBackground(marketSentiment)
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col items-center justify-center gap-4 align-middle">
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <BitcoinTicker ticker="btc-usd" />
+        <BitcoinTicker ticker="eth-usd" />
+        <BitcoinTicker ticker="sol-usd" />
+      </div>
       <div className="flex flex-col gap-4 lg:flex-row">
         <div className="w-full lg:w-1/2">
           <Card className="relative flex h-full min-h-[15rem] flex-col justify-between overflow-hidden">
             <CardHeader>
               <CardTitle className="z-50 w-fit rounded-full px-4  py-2 font-medium dark:bg-neutral-100/5">
-                The markets are{" "}
+                Market vibes are{" "}
                 <strong className={sentimentColor}>{marketSentiment}</strong>
               </CardTitle>
+              <CardDescription className="ml-2 text-xs italic text-muted-foreground/40">
+                via Yahoo! Finance
+              </CardDescription>
             </CardHeader>
-            {news.news[0] && news.news[0].title && (
+            {headline && headline.title && (
               <CardFooter className="flex-col items-start">
                 <p className="mb-2 text-sm font-semibold text-neutral-500 dark:text-neutral-500">
                   What you need to know today
                 </p>
                 <Link
                   prefetch={false}
-                  href={news.news[0].link}
+                  href={headline.link}
                   className="text-lg font-extrabold"
                 >
-                  {news.news[0].title}
+                  {headline.title}
                 </Link>
               </CardFooter>
             )}
@@ -166,24 +137,21 @@ export default async function Home({
           </Card>
         </div>
         <div className="w-full lg:w-1/2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Sector Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Suspense fallback={<div>Loading...</div>}>
-                <SectorPerformance />
-              </Suspense>
-            </CardContent>
-          </Card>
+          <h3 className="mb-4 mt-2 text-lg font-semibold">
+            Sector Performance
+          </h3>
+          <Suspense fallback={<div>Loading...</div>}>
+            <SectorBadges />
+          </Suspense>
         </div>
       </div>
-      <div>
+
+      {/* <div>
         <h2 className="py-4 text-xl font-medium">Markets</h2>
         <Card className="flex flex-col gap-4 p-6 lg:flex-row">
           <div className="w-full lg:w-1/2">
             <Suspense fallback={<div>Loading...</div>}>
-              <DataTable columns={columns} data={resultsWithTitles} />
+              <Watchlist watchlist={watchlist} />
             </Suspense>
           </div>
           <div className="w-full lg:w-1/2">
@@ -192,7 +160,7 @@ export default async function Home({
             </Suspense>
           </div>
         </Card>
-      </div>
+      </div> */}
     </div>
   )
 }

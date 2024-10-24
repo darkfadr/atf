@@ -10,6 +10,7 @@ export async function fetchQuote(ticker: string) {
     return response
   } catch (error) {
     console.log("Failed to fetch stock quote", error)
-    throw new Error("Failed to fetch stock quote.")
+    return {}
+    // throw new Error("Failed to fetch stock quote.")
   }
 }

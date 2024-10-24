@@ -97,3 +97,69 @@ export function calculateInterval(range: string) {
 
   return interval
 }
+
+export function formatNumber(num: number) {
+  if (num >= 1e12) {
+    return `${(num / 1e12).toFixed(2)}T`
+  } else if (num >= 1e9) {
+    return `${(num / 1e9).toFixed(2)}B`
+  } else if (num >= 1e6) {
+    return `${(num / 1e6).toFixed(2)}M`
+  } else {
+    return num.toString()
+  }
+}
+
+export function getMarketSentiment(changePercentage: number | null = null) {
+  if (changePercentage === null || changePercentage === undefined)
+    return "neutral"
+  if (changePercentage > 0.1) return "bullish"
+  if (changePercentage < -0.1) return "bearish"
+
+  return "neutral"
+}
+
+export function getSentimentColor(marketSentiment: string) {
+  return marketSentiment === "bullish"
+    ? "text-green-500"
+    : marketSentiment === "bearish"
+      ? "text-red-500"
+      : "text-neutral-500"
+}
+
+export function getSentimentBackground(marketSentiment: string) {
+  return marketSentiment === "bullish"
+    ? "bg-green-500/10"
+    : marketSentiment === "bearish"
+      ? "bg-red-300/20 dark:bg-red-950/20"
+      : "bg-neutral-500/10"
+}
+
+export function isMarketOpen() {
+  const now = new Date()
+
+  // Convert to New York time
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "America/New_York",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false,
+  }
+  const formatter = new Intl.DateTimeFormat([], options)
+
+  const timeString = formatter.format(now)
+  const [hour, minute] = timeString.split(":").map(Number)
+  const timeInET = hour + minute / 60
+
+  // Get the day of the week in New York time
+  const dayInET = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/New_York" })
+  ).getDay()
+
+  // Check if the current time is between 9:30 AM and 4:00 PM ET on a weekday
+  if (dayInET >= 1 && dayInET <= 5 && timeInET >= 9.5 && timeInET < 16) {
+    return true
+  } else {
+    return false
+  }
+}
